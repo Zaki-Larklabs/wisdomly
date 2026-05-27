@@ -1,0 +1,18 @@
+# CODEOWNERS
+# Each line assigns a code owner who must approve PRs touching those paths.
+
+# Global fallback — you review everything by default
+* @Zaki-Larklabs
+
+# Backend
+apps/api/                       @Zaki-Larklabs
+packages/db/                    @Zaki-Larklabs
+
+# Frontend
+apps/web/                       @Zaki-Larklabs
+
+# Shared packages
+packages/shared/                @Zaki-Larklabs
+
+# CI/CD — pipeline changes
+.github/                        @Zaki-Larklabs

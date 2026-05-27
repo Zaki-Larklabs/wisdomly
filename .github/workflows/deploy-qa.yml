@@ -1,0 +1,27 @@
+name: Deploy QA
+on:
+  push:
+    branches: [ develop ]
+concurrency:
+  group: deploy-qa
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Run Migrations
+        env:
+          DATABASE_URL: ${{ secrets.QA_DATABASE_URL }}
+        run: pnpm --filter @wisdomly/db exec prisma migrate deploy
+      - name: Trigger Render Deploy
+        run: curl -X POST ${{ secrets.RENDER_QA_DEPLOY_HOOK }}
