@@ -2,11 +2,12 @@ services:
   - type: web
     name: wisdomly-api-qa
     env: node
-    branch: develop
-    region: singapore
+    branch: dev
+    region: oregon
+    plan: free
     autoDeploy: true
     healthCheckPath: /health
-    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @wisdomly/api build
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @wisdomly/db db:generate && pnpm --filter @wisdomly/api build
     startCommand: node apps/api/dist/server.js
     envVars:
       - key: NODE_ENV
@@ -18,10 +19,11 @@ services:
     name: wisdomly-api-prod
     env: node
     branch: main
-    region: singapore
-    autoDeploy: false
+    region: oregon
+    plan: free
+    autoDeploy: true
     healthCheckPath: /health
-    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @wisdomly/api build
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @wisdomly/db db:generate && pnpm --filter @wisdomly/api build
     startCommand: node apps/api/dist/server.js
     envVars:
       - key: NODE_ENV
