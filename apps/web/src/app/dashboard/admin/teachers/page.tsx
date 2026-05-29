@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { api } from '../../../../lib/api';
 import { RoleGuard } from '../../../../components/ui/layouts/RoleGuard';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface Teacher {
   id: string;
@@ -17,11 +18,9 @@ interface Teacher {
 }
 
 export default function AdminTeachersPage() {
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [submitting, setSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -31,31 +30,22 @@ export default function AdminTeachersPage() {
     password: 'Teacher@1234', // Default placeholder baseline key for onboarding
   });
 
-  // 1. Pull existing faculty registers from the database
-  const fetchTeachers = async () => {
-    try {
+  // 1. Pull existing faculty registers from the database via React Query
+  const { data: teachers = [], isLoading } = useQuery<Teacher[]>({
+    queryKey: ['teachers'],
+    queryFn: async () => {
       const response = await api.get('/teachers');
-      setTeachers(response.data.data);
-    } catch (err) {
-      console.error('Failed to resolve faculty registers', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return response.data.data;
+    },
+  });
 
-  useEffect(() => {
-    fetchTeachers();
-  }, []);
-
-  // 2. Submit single teacher creation form
-  const handleCreateTeacher = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      await api.post('/teachers', formData);
+  // 2. Submit single teacher creation form via React Query Mutation
+  const createTeacherMutation = useMutation({
+    mutationFn: async (newTeacherData: typeof formData) => {
+      return api.post('/teachers', newTeacherData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teachers'] });
       setSuccess(`🎉 Registered ${formData.name} successfully into system archives.`);
       setFormData({
         name: '',
@@ -64,12 +54,18 @@ export default function AdminTeachersPage() {
         department: '',
         password: 'Teacher@1234',
       });
-      fetchTeachers(); // Refresh table state data
-    } catch (err: any) {
-      setError(err.response?.data?.error?.message || 'Verification rejected');
-    } finally {
-      setSubmitting(false);
-    }
+    },
+    onError: (err: unknown) => {
+      const apiErr = err as { response?: { data?: { error?: { message?: string } } } };
+      setError(apiErr.response?.data?.error?.message || 'Verification rejected');
+    },
+  });
+
+  const handleCreateTeacher = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    createTeacherMutation.mutate(formData);
   };
 
   return (
@@ -145,10 +141,10 @@ export default function AdminTeachersPage() {
 
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={createTeacherMutation.isPending}
                   className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs py-2.5 rounded-lg transition disabled:opacity-50 mt-2"
                 >
-                  {submitting ? 'Writing System Logs...' : 'Commit Instructor Profile'}
+                  {createTeacherMutation.isPending ? 'Writing System Logs...' : 'Commit Instructor Profile'}
                 </button>
               </form>
             </div>
@@ -159,7 +155,7 @@ export default function AdminTeachersPage() {
                 <h2 className="text-lg font-semibold text-slate-200">Active Faculty Directory</h2>
               </div>
 
-              {loading ? (
+              {isLoading ? (
                 <div className="p-8 text-center text-xs text-emerald-400 tracking-widest">RESOLVING DISTRIBUTED ACCOUNTS MATRIX...</div>
               ) : teachers.length === 0 ? (
                 <div className="p-8 text-center text-sm text-slate-600">No registered instructors mapped to this institutional workspace domain.</div>

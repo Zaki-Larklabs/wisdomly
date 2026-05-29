@@ -19,6 +19,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Course Management', href: '/dashboard/admin/subjects', icon: '📚' }, // <-- New link node injected here
     { name: 'Student Registry', href: '/dashboard/admin/students', icon: '🎓' },
     { name: 'Teacher Roster', href: '/dashboard/admin/teachers', icon: '💼' },
+    { name: 'Timetable', href: '/dashboard/admin/timetable', icon: '📅' },
+    { name: 'Attendance Reports', href: '/dashboard/admin/attendance', icon: '✅' },
+    { name: 'Exams & Results', href: '/dashboard/admin/exams', icon: '📝' },
+    { name: 'Notices & Broadcasts', href: '/dashboard/admin/notices', icon: '📢' }, // <-- ADD THIS
   ];
 
   return (

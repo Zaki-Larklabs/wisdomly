@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { api } from '@/lib/api'
 import { useAuth } from '@/context/AuthContext';
 import { RoleGuard } from '@/components/ui/layouts/RoleGuard';
@@ -113,6 +114,24 @@ export default function StudentDashboardOverview() {
               </div>
             </>
           )}
+
+          <div className="space-y-4 pt-6 border-t border-slate-800/60">
+            <h3 className="text-xs font-bold tracking-wider text-slate-500 uppercase">Quick Actions</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Link href="/dashboard/student/timetable" className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg flex flex-col items-center justify-center hover:border-emerald-500/40 transition group cursor-pointer">
+                <span className="text-3xl mb-2 group-hover:scale-110 transition">📅</span>
+                <h4 className="text-sm font-bold text-white group-hover:text-emerald-400">My Timetable</h4>
+              </Link>
+              <Link href="/dashboard/student/attendance" className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg flex flex-col items-center justify-center hover:border-emerald-500/40 transition group cursor-pointer">
+                <span className="text-3xl mb-2 group-hover:scale-110 transition">✅</span>
+                <h4 className="text-sm font-bold text-white group-hover:text-emerald-400">My Attendance</h4>
+              </Link>
+              <Link href="/dashboard/student/results" className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg flex flex-col items-center justify-center hover:border-emerald-500/40 transition group cursor-pointer">
+                <span className="text-3xl mb-2 group-hover:scale-110 transition">📝</span>
+                <h4 className="text-sm font-bold text-white group-hover:text-emerald-400">My Results</h4>
+              </Link>
+            </div>
+          </div>
 
         </main>
       </div>

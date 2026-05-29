@@ -30,7 +30,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const token = localStorage.getItem('wisdomly_token');
       const savedUser = localStorage.getItem('wisdomly_user');
       if (token && savedUser) {
-        setUser(JSON.parse(savedUser));
+        const userData = JSON.parse(savedUser);
+        setUser(userData);
+        // Ensure cookies are synced if localStorage exists
+        document.cookie = `wisdomly_token=${token}; path=/; max-age=604800; SameSite=Lax; Secure`;
+        document.cookie = `wisdomly_role=${userData.role}; path=/; max-age=604800; SameSite=Lax; Secure`;
       }
       setLoading(false);
     };
@@ -43,6 +47,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     localStorage.setItem('wisdomly_token', accessToken);
     localStorage.setItem('wisdomly_user', JSON.stringify(userData));
+    
+    // Set Edge-level readable cookies
+    document.cookie = `wisdomly_token=${accessToken}; path=/; max-age=604800; SameSite=Lax; Secure`;
+    document.cookie = `wisdomly_role=${userData.role}; path=/; max-age=604800; SameSite=Lax; Secure`;
+
     setUser(userData);
 
     // Dynamic Client-Side Role Redirection Matrix
@@ -55,6 +64,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logout = () => {
     localStorage.removeItem('wisdomly_token');
     localStorage.removeItem('wisdomly_user');
+    
+    // Delete cookies
+    document.cookie = 'wisdomly_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie = 'wisdomly_role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    
     setUser(null);
     router.push('/login');
   };

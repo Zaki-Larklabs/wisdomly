@@ -11,7 +11,11 @@ import teachersRouter from './modules/teachers/teachers.router';
 import adminRouter from './modules/admin/admin.router';
 import classesRouter from './modules/classes/classes.router';
 import subjectsRouter from './modules/subjects/subjects.router';
-
+import timetableRouter from './modules/timetable/timetable.router';
+import attendanceRouter from './modules/attendance/attendance.router';
+import marksRouter from './modules/marks/marks.router';
+import homeworkRouter from './modules/homework/homework.router';
+import noticesRouter from './modules/notices/notices.router';
 const app = express();
 
 app.use(helmet());
@@ -37,6 +41,11 @@ app.use('/api/v1/teachers', teachersRouter);
 app.use('/api/v1/admin', adminRouter);
 app.use('/api/v1/classes', classesRouter);
 app.use('/api/v1/subjects', subjectsRouter);
+app.use('/api/v1/timetable', timetableRouter);
+app.use('/api/v1/attendance', attendanceRouter);
+app.use('/api/v1/marks', marksRouter);
+app.use('/api/v1/homework', homeworkRouter);
+app.use('/api/v1/notices', noticesRouter);
 
 // ─── 404 Handler ──────────────────────────────
 app.use((req, res) => {
