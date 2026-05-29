@@ -40,7 +40,7 @@ export async function createHomework(
 
   if (students.length > 0) {
     await prisma.homeworkSubmission.createMany({
-      data: students.map(s => ({
+      data: students.map((s: { id: string }) => ({
         schoolId,
         homeworkId: homework.id,
         studentId:  s.id,

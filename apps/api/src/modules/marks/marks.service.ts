@@ -74,7 +74,7 @@ export const generateReportCards = async (
   });
 
   // 2. Get all marks for these students for the given exam
-  const studentIds = students.map(s => s.id);
+  const studentIds = students.map((s: any) => s.id);
   const marks = await prisma.mark.findMany({
     where: { schoolId, studentId: { in: studentIds }, examId }
   });
@@ -86,7 +86,7 @@ export const generateReportCards = async (
   // 3. Group marks by student and calculate totals
   const studentStats: Record<string, { totalMarksObtained: number, totalMaxMarks: number }> = {};
   
-  marks.forEach(mark => {
+  marks.forEach((mark: any) => {
     if (!studentStats[mark.studentId]) {
       studentStats[mark.studentId] = { totalMarksObtained: 0, totalMaxMarks: 0 };
     }
