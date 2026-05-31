@@ -16,6 +16,15 @@ const nextConfig = {
       },
     ]
   },
+  async redirects() {
+    return [
+      {
+        source: '/admin/:path*',
+        destination: '/dashboard/admin/:path*',
+        permanent: true,
+      },
+    ]
+  },
 };
 
 export default nextConfig;
