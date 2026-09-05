@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../../../context/AuthContext';
 import { RoleGuard } from '../../../components/ui/layouts/RoleGuard';
+import NotificationBell from '../../../components/notifications/NotificationBell';
+import LanguageSwitcher from '../../../components/i18n/LanguageSwitcher';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { logout } = useAuth();
@@ -22,7 +24,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { name: 'Timetable', href: '/dashboard/admin/timetable', icon: '📅' },
     { name: 'Attendance Reports', href: '/dashboard/admin/attendance', icon: '✅' },
     { name: 'Exams & Results', href: '/dashboard/admin/exams', icon: '📝' },
-    { name: 'Notices & Broadcasts', href: '/dashboard/admin/notices', icon: '📢' }, // <-- ADD THIS
+    { name: 'Fee Management', href: '/dashboard/admin/fees', icon: '💰' },
+    { name: 'Fee Templates', href: '/dashboard/admin/fees/templates', icon: '📋' },
+    { name: 'Notices & Broadcasts', href: '/dashboard/admin/notices', icon: '📢' },
+    { name: 'Registrations', href: '/dashboard/admin/registrations', icon: '🆕' },
+    { name: 'School Settings', href: '/dashboard/admin/settings', icon: '⚙️' },
+    { name: 'Library', href: '/dashboard/admin/library', icon: '📖' },
+    { name: 'Staff Management', href: '/dashboard/admin/staff', icon: '👥' },
+    { name: 'Analytics', href: '/dashboard/admin/analytics', icon: '📊' },
+    { name: 'Leave Management', href: '/dashboard/admin/leaves', icon: '🏖️' },
   ];
 
   return (
@@ -69,6 +79,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Fluid Dynamic Workspace Window */}
         <main className="flex-1 overflow-y-auto bg-slate-950">
+          <div className="sticky top-0 z-40 bg-slate-950/80 backdrop-blur-sm border-b border-slate-800 px-6 py-2 flex justify-end items-center gap-2">
+            <LanguageSwitcher />
+            <NotificationBell />
+          </div>
           {children}
         </main>
 

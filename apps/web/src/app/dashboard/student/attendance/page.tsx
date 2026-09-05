@@ -1,123 +1,111 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useAuth } from '../../../../context/AuthContext';
+import { RoleGuard } from '@/components/ui/layouts/RoleGuard';
+import { api } from '@/lib/api';
+import { CalendarDays, Loader2, CheckCircle, XCircle, Clock } from 'lucide-react';
 
-export default function StudentAttendance() {
-  const { user } = useAuth();
-  const [attendance, setAttendance] = useState<any[]>([]);
+const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+export default function StudentAttendancePage() {
+  const now = new Date();
+  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [year, setYear] = useState(now.getFullYear());
+  const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [month, setMonth] = useState(new Date().getMonth() + 1);
-  const [year, setYear] = useState(new Date().getFullYear());
 
   useEffect(() => {
-    if (!user) return;
-
     setLoading(true);
-    // Student ID isn't directly user.id in the schema, but user.id is the auth reference.
-    // The endpoint getStudentAttendance takes studentId. Let's assume there is an endpoint `/api/v1/students/me` to get the student profile,
-    // or we can use an endpoint like `/api/v1/attendance/me` which resolves the studentId.
-    // For now, let's use the `/api/v1/attendance/student/${user.id}` and let the backend handle fetching the student record by userId if needed,
-    // OR we change the API to fetch via `/me`. Since we don't have `/me` for attendance, we'll assume we pass the `user.id` and the backend resolves it or we just use `user.id` as `userId`.
-    // Wait, the API we wrote is `/api/v1/attendance/student/:studentId`.
-    // It expects `studentId`, which is the `Student.id`.
-    // We should probably fetch the student's ID first or use `user.id` if the endpoint translates it.
-    // Let's assume the frontend knows the student ID from AuthContext in a real app, but here we just pass user.id and the backend will need to handle it.
-    
-    // To be safe, let's just make the fetch request.
-    fetch(`/api/v1/attendance/student/${user.id}?month=${month}&year=${year}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('wisdomly_token')}` }
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setAttendance(data.data);
-        }
-        setLoading(false);
-      });
-  }, [user, month, year]);
+    api.get('/attendance/my-attendance', { params: { month, year } })
+      .then(r => setRecords(r.data.data || []))
+      .catch(() => setRecords([]))
+      .finally(() => setLoading(false));
+  }, [month, year]);
 
   const daysInMonth = new Date(year, month, 0).getDate();
-  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  const firstDay = new Date(year, month - 1, 1).getDay();
+  const recordMap = new Map(records.map(r => [new Date(r.date).getDate(), r]));
 
-  const getStatus = (day: number, session: 'AM' | 'PM') => {
-    const record = attendance.find(a => new Date(a.date).getDate() === day && a.session === session);
-    return record ? record.status : '-';
-  };
+  const present = records.filter(r => r.status === 'PRESENT').length;
+  const absent = records.filter(r => r.status === 'ABSENT').length;
+  const late = records.filter(r => r.status === 'LATE').length;
+  const leave = records.filter(r => r.status === 'LEAVE').length;
+  const total = records.length || 1;
+  const pct = Math.round((present / total) * 100);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'PRESENT': return 'bg-green-100 text-green-800 border-green-200';
-      case 'ABSENT': return 'bg-red-100 text-red-800 border-red-200';
-      case 'LATE': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'LEAVE': return 'bg-blue-100 text-blue-800 border-blue-200';
-      default: return 'bg-gray-50 text-gray-400 border-gray-100';
-    }
+  const statusColor: Record<string, string> = {
+    PRESENT: 'bg-emerald-500 text-white',
+    ABSENT: 'bg-rose-500 text-white',
+    LATE: 'bg-amber-500 text-white',
+    LEAVE: 'bg-blue-500 text-white',
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">My Attendance</h1>
-          <p className="mt-2 text-gray-600">Track your daily attendance record.</p>
-        </div>
-        <div className="flex space-x-4">
-          <select 
-            value={month} 
-            onChange={e => setMonth(parseInt(e.target.value))}
-            className="border border-gray-300 rounded-lg p-2"
-          >
-            {Array.from({ length: 12 }, (_, i) => (
-              <option key={i + 1} value={i + 1}>{new Date(2000, i, 1).toLocaleString('default', { month: 'long' })}</option>
-            ))}
-          </select>
-          <select 
-            value={year} 
-            onChange={e => setYear(parseInt(e.target.value))}
-            className="border border-gray-300 rounded-lg p-2"
-          >
-            {[2024, 2025, 2026].map(y => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    <RoleGuard allowedRoles={['STUDENT']}>
+      <div className="min-h-screen bg-slate-950 text-white p-8">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <div className="flex items-center gap-3">
+            <CalendarDays size={20} className="text-emerald-400" />
+            <h1 className="text-xl font-bold text-white">My Attendance</h1>
           </div>
-        ) : (
-          <div className="grid grid-cols-7 gap-4">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-              <div key={d} className="text-center font-semibold text-gray-500 text-sm py-2">
-                {d}
-              </div>
-            ))}
-            
-            {/* Empty slots for start of month - Simplified for demonstration */}
-            {Array.from({ length: new Date(year, month - 1, 1).getDay() }).map((_, i) => (
-              <div key={`empty-${i}`} className="h-24 bg-gray-50 rounded-lg border border-gray-100"></div>
-            ))}
 
-            {days.map(day => (
-              <div key={day} className="h-24 border border-gray-200 rounded-lg p-2 flex flex-col justify-between hover:shadow-md transition-shadow">
-                <span className="text-sm font-medium text-gray-700">{day}</span>
-                <div className="space-y-1 mt-2">
-                  <div className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${getStatusColor(getStatus(day, 'AM'))}`}>
-                    AM: {getStatus(day, 'AM')}
-                  </div>
-                  <div className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${getStatusColor(getStatus(day, 'PM'))}`}>
-                    PM: {getStatus(day, 'PM')}
-                  </div>
-                </div>
+          {/* Stats */}
+          <div className="grid grid-cols-5 gap-3">
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+              <p className="text-2xl font-bold text-emerald-400">{pct}%</p>
+              <p className="text-[10px] text-slate-500">Overall</p>
+            </div>
+            {[
+              { label: 'Present', value: present, color: 'text-emerald-400', icon: CheckCircle },
+              { label: 'Absent', value: absent, color: 'text-rose-400', icon: XCircle },
+              { label: 'Late', value: late, color: 'text-amber-400', icon: Clock },
+              { label: 'Leave', value: leave, color: 'text-blue-400' },
+            ].map(s => (
+              <div key={s.label} className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
+                <p className={`text-lg font-bold ${s.color}`}>{s.value}</p>
+                <p className="text-[10px] text-slate-500">{s.label}</p>
               </div>
             ))}
           </div>
-        )}
+
+          {/* Month selector */}
+          <div className="flex items-center gap-2">
+            <button onClick={() => { if (month > 1) setMonth(month - 1); else { setMonth(12); setYear(year - 1); } }}
+              className="px-3 py-1.5 rounded-lg bg-slate-800 text-xs text-slate-300 hover:bg-slate-700">←</button>
+            <span className="text-sm font-bold text-white min-w-[140px] text-center">{months[month - 1]} {year}</span>
+            <button onClick={() => { if (month < 12) setMonth(month + 1); else { setMonth(1); setYear(year + 1); } }}
+              className="px-3 py-1.5 rounded-lg bg-slate-800 text-xs text-slate-300 hover:bg-slate-700">→</button>
+          </div>
+
+          {/* Calendar */}
+          {loading ? (
+            <div className="text-center py-12"><Loader2 size={24} className="animate-spin mx-auto text-slate-500" /></div>
+          ) : (
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+              <div className="grid grid-cols-7 border-b border-slate-800">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
+                  <div key={d} className="px-3 py-2 text-[10px] font-semibold text-slate-500 text-center uppercase">{d}</div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7">
+                {Array.from({ length: firstDay }).map((_, i) => <div key={`e-${i}`} className="aspect-square p-1.5" />)}
+                {Array.from({ length: daysInMonth }).map((_, i) => {
+                  const day = i + 1;
+                  const rec = recordMap.get(day);
+                  return (
+                    <div key={day} className="aspect-square p-1.5 border-b border-r border-slate-800/50">
+                      <div className={`h-full rounded-lg flex flex-col items-center justify-center ${rec ? statusColor[rec.status] || '' : ''} ${!rec ? 'hover:bg-slate-800/30' : ''}`}>
+                        <span className={`text-sm font-bold ${!rec ? 'text-slate-400' : ''}`}>{day}</span>
+                        {rec && <span className="text-[8px] opacity-80 mt-0.5">{rec.status === 'PRESENT' ? 'P' : rec.status === 'ABSENT' ? 'A' : rec.status === 'LATE' ? 'L' : 'LV'}</span>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </RoleGuard>
   );
 }

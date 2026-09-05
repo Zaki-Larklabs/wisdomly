@@ -23,3 +23,10 @@ export const listSubjects = async (req: Request, res: Response) => {
     data: subjects
   });
 };
+
+export const listSubjectsByClass = async (req: Request, res: Response) => {
+  const schoolId = req.schoolId!;
+  const { classId } = req.params;
+  const subjects = await subjectsService.getSubjectsByClass(schoolId, classId);
+  res.status(200).json({ success: true, data: subjects });
+};

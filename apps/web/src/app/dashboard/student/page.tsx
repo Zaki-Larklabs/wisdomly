@@ -5,6 +5,10 @@ import Link from 'next/link';
 import { api } from '@/lib/api'
 import { useAuth } from '@/context/AuthContext';
 import { RoleGuard } from '@/components/ui/layouts/RoleGuard';
+import NotificationBell from '@/components/notifications/NotificationBell';
+import LanguageSwitcher from '@/components/i18n/LanguageSwitcher';
+import { useI18n } from '@/i18n/context';
+import { useFees } from '@/hooks/useFees';
 
 interface StudentProfile {
   id: string;
@@ -24,6 +28,7 @@ interface StudentProfile {
 
 export default function StudentDashboardOverview() {
   const { logout } = useAuth();
+  const { t } = useI18n();
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -50,16 +55,20 @@ export default function StudentDashboardOverview() {
           <div className="flex items-center gap-3">
             <span className="text-xl">🎓</span>
             <div>
-              <h1 className="text-lg font-bold text-white">Student Hub</h1>
-              <p className="text-[10px] text-emerald-400 font-mono tracking-wider uppercase font-bold">Academic Session Active</p>
+              <h1 className="text-lg font-bold text-white">{t('nav.dashboard', 'Student Hub')}</h1>
+              <p className="text-[10px] text-emerald-400 font-mono tracking-wider uppercase font-bold">{t('common.appName', 'Academic Session')} Active</p>
             </div>
           </div>
-          <button 
-            onClick={logout}
-            className="bg-slate-950 border border-slate-800 hover:border-rose-500/30 text-slate-400 hover:text-rose-400 text-xs px-4 py-2 rounded-lg transition"
-          >
-            Sign Out
-          </button>
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher />
+            <NotificationBell />
+            <button 
+              onClick={logout}
+              className="bg-slate-950 border border-slate-800 hover:border-rose-500/30 text-slate-400 hover:text-rose-400 text-xs px-4 py-2 rounded-lg transition"
+            >
+              Sign Out
+            </button>
+          </div>
         </header>
 
         {/* Central Student Desktop View Workspace Layout */}
@@ -82,6 +91,9 @@ export default function StudentDashboardOverview() {
                   <p><span className="text-emerald-400 font-bold">Class Allocation:</span> {profile.class.name} — {profile.section.name}</p>
                 </div>
               </div>
+
+              {/* Fee Status Overview Widget */}
+              <StudentFeeWidget />
 
               {/* Course Roster Dynamic Catalog Sub-Grid Grid System Layout */}
               <div className="space-y-4">
@@ -130,11 +142,85 @@ export default function StudentDashboardOverview() {
                 <span className="text-3xl mb-2 group-hover:scale-110 transition">📝</span>
                 <h4 className="text-sm font-bold text-white group-hover:text-emerald-400">My Results</h4>
               </Link>
+              <Link href="/dashboard/student/fees" className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg flex flex-col items-center justify-center hover:border-emerald-500/40 transition group cursor-pointer">
+                <span className="text-3xl mb-2 group-hover:scale-110 transition">💰</span>
+                <h4 className="text-sm font-bold text-white group-hover:text-emerald-400">My Fees</h4>
+              </Link>
+              <Link href="/dashboard/student/library" className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg flex flex-col items-center justify-center hover:border-emerald-500/40 transition group cursor-pointer">
+                <span className="text-3xl mb-2 group-hover:scale-110 transition">📖</span>
+                <h4 className="text-sm font-bold text-white group-hover:text-emerald-400">Library</h4>
+              </Link>
+              <Link href="/dashboard/student/homework" className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg flex flex-col items-center justify-center hover:border-emerald-500/40 transition group cursor-pointer">
+                <span className="text-3xl mb-2 group-hover:scale-110 transition">📋</span>
+                <h4 className="text-sm font-bold text-white group-hover:text-emerald-400">Homework</h4>
+              </Link>
             </div>
           </div>
 
         </main>
       </div>
     </RoleGuard>
+  );
+}
+
+function StudentFeeWidget() {
+  const { data: fees, isLoading } = useFees();
+
+  if (isLoading || !fees) return null;
+
+  const unpaid = fees.filter(f => f.status !== 'PAID' && f.status !== 'WAIVED');
+  const overdue = unpaid.filter(f => f.daysOverdue > 0);
+  const totalDue = unpaid.reduce((sum, f) => sum + (f.effectiveAmount - f.paidAmount), 0);
+  const paidFees = fees.filter(f => f.status === 'PAID');
+  const totalPaid = paidFees.reduce((sum, f) => sum + f.amount, 0);
+  const grandTotal = fees.reduce((sum, f) => sum + f.amount, 0);
+  const progressPct = grandTotal > 0 ? Math.round((totalPaid / grandTotal) * 100) : 0;
+
+  if (unpaid.length === 0 && paidFees.length === 0) return null;
+
+  return (
+    <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-slate-850 border border-slate-800 rounded-xl p-5 shadow-xl">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-bold text-slate-200 flex items-center gap-2">
+          <span>💰</span> Fee Status
+        </h3>
+        <Link href="/dashboard/student/fees" className="text-[11px] text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1">
+          View Details →
+        </Link>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-3">
+          <p className="text-[10px] text-slate-500 uppercase tracking-wider">Total Due</p>
+          <p className="text-lg font-extrabold text-amber-400 font-mono mt-0.5">₹{totalDue.toLocaleString('en-IN')}</p>
+        </div>
+        <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-3">
+          <p className="text-[10px] text-slate-500 uppercase tracking-wider">Overdue</p>
+          <p className="text-lg font-extrabold text-rose-400 font-mono mt-0.5">{overdue.length}</p>
+        </div>
+        <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-3">
+          <p className="text-[10px] text-slate-500 uppercase tracking-wider">Unpaid Items</p>
+          <p className="text-lg font-extrabold text-slate-200 font-mono mt-0.5">{unpaid.length}</p>
+        </div>
+        <div className="bg-slate-950/60 border border-slate-800 rounded-lg p-3">
+          <p className="text-[10px] text-slate-500 uppercase tracking-wider">Payment Progress</p>
+          <div className="flex items-center gap-2 mt-1">
+            <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${progressPct}%` }} />
+            </div>
+            <span className="text-lg font-extrabold text-emerald-400 font-mono">{progressPct}%</span>
+          </div>
+        </div>
+      </div>
+      {unpaid.length > 0 && (
+        <div className="mt-3 flex items-center justify-end">
+          <Link
+            href="/dashboard/student/fees"
+            className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-bold px-4 py-2 rounded-lg transition flex items-center gap-1.5"
+          >
+            Pay Outstanding Fees →
+          </Link>
+        </div>
+      )}
+    </div>
   );
 }

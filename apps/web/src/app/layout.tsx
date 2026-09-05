@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { AuthProvider } from "../context/AuthContext";
+import { I18nProvider } from "../i18n/context";
 import QueryProvider from "./QueryProvider";
 
 const geistSans = localFont({
@@ -30,9 +31,11 @@ export default function RootLayout({
     <html lang="en" className={cn(geistSans.variable, geistMono.variable)}>
       <body className="antialiased">
         <QueryProvider>
-          <AuthProvider>
-            {children}
-          </AuthProvider>
+          <I18nProvider>
+            <AuthProvider>
+              {children}
+            </AuthProvider>
+          </I18nProvider>
         </QueryProvider>
       </body>
     </html>

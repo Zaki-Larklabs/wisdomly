@@ -61,6 +61,29 @@ export const getStudentResults = async (req: Request, res: Response) => {
   });
 };
 
+export const getMyResults = async (req: Request, res: Response) => {
+  const schoolId = req.schoolId!;
+  const userId = req.user!.sub;
+
+  const student = await prisma.student.findFirst({ where: { schoolId, userId } });
+  if (!student) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Student not found' } });
+
+  const results = await marksService.getStudentResults(schoolId, student.id);
+  res.status(200).json({ success: true, data: results });
+};
+
+export const getMyMarksForExam = async (req: Request, res: Response) => {
+  const schoolId = req.schoolId!;
+  const userId = req.user!.sub;
+  const { examId } = req.params;
+
+  const student = await prisma.student.findFirst({ where: { schoolId, userId } });
+  if (!student) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Student not found' } });
+
+  const marks = await marksService.getStudentMarksForExam(schoolId, student.id, examId);
+  res.status(200).json({ success: true, data: marks });
+};
+
 export const getStudentMarksForExam = async (req: Request, res: Response) => {
   const schoolId = req.schoolId!;
   const userId = req.user?.sub!;

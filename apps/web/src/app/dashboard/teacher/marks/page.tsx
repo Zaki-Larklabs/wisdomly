@@ -1,236 +1,179 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { RoleGuard } from '@/components/ui/layouts/RoleGuard';
+import { api } from '@/lib/api';
+import { Loader2, Save, FileSpreadsheet, GraduationCap, BookOpen } from 'lucide-react';
 
 export default function TeacherMarksEntry() {
   const [classes, setClasses] = useState<any[]>([]);
   const [subjects, setSubjects] = useState<any[]>([]);
   const [exams, setExams] = useState<any[]>([]);
-  
+
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('');
   const [selectedExam, setSelectedExam] = useState('');
   const [maxMarks, setMaxMarks] = useState(100);
-  
-  const [students, setStudents] = useState<any[]>([]);
-  const [marks, setMarks] = useState<Record<string, { obtained: number, remarks: string }>>({});
-  const [loading, setLoading] = useState(false);
 
-  // Initial load of classes and exams
+  const [students, setStudents] = useState<any[]>([]);
+  const [marks, setMarks] = useState<Record<string, { obtained: number; remarks: string }>>({});
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState('');
+
   useEffect(() => {
-    Promise.all([
-      fetch('/api/v1/classes', { headers: { Authorization: `Bearer ${localStorage.getItem('wisdomly_token')}` } }).then(r => r.json()),
-      // Note: Realistically, we need an endpoint for Exams. For now, assuming an exams endpoint exists or using mock.
-      // If no exams endpoint exists yet, we should create one. We'll add a fetch here.
-    ]).then(([classesData]) => {
-      if (classesData.success) setClasses(classesData.data);
-      
-      // Mock exams since we didn't build a full CRUD for Exams
-      setExams([
-        { id: 'exam-unit-1', name: 'Unit Test 1', maxMarks: 50 },
-        { id: 'exam-mid-term', name: 'Mid Term Exam', maxMarks: 100 },
-        { id: 'exam-final', name: 'Final Exam', maxMarks: 100 }
-      ]);
-    });
+    api.get('/classes').then(r => setClasses(r.data.data)).catch(() => {});
   }, []);
 
-  // When class changes, load subjects for that class
   useEffect(() => {
-    if (!selectedClass) return;
-    fetch(`/api/v1/subjects/class/${selectedClass}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('wisdomly_token')}` }
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) setSubjects(data.data);
-      });
+    if (!selectedClass) { setSubjects([]); return; }
+    api.get(`/subjects/class/${selectedClass}`).then(r => setSubjects(r.data.data)).catch(() => {});
   }, [selectedClass]);
 
-  // When class, subject, and exam are selected, load students
+  useEffect(() => {
+    if (!selectedClass) { setExams([]); return; }
+    api.get('/exams', { params: { classId: selectedClass, subjectId: selectedSubject || undefined } })
+      .then(r => setExams(r.data.data)).catch(() => {});
+  }, [selectedClass, selectedSubject]);
+
   useEffect(() => {
     if (!selectedClass || !selectedSubject || !selectedExam) return;
-    
     setLoading(true);
-    // Fetch students
-    fetch(`/api/v1/students?classId=${selectedClass}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('wisdomly_token')}` }
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          setStudents(data.data.data || []);
-          
-          // Initialize marks state
-          const initialMarks: Record<string, { obtained: number, remarks: string }> = {};
-          (data.data.data || []).forEach((s: any) => {
-            initialMarks[s.id] = { obtained: 0, remarks: '' };
-          });
-          setMarks(initialMarks);
-        }
-        setLoading(false);
-      });
+    api.get('/students', { params: { classId: selectedClass } })
+      .then(r => {
+        const list = r.data.data?.data || r.data.data || [];
+        setStudents(list);
+        const initial: Record<string, { obtained: number; remarks: string }> = {};
+        list.forEach((s: any) => { initial[s.id] = { obtained: 0, remarks: '' }; });
+        setMarks(initial);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [selectedClass, selectedSubject, selectedExam]);
 
-  const handleMarkChange = (studentId: string, field: 'obtained' | 'remarks', value: any) => {
-    setMarks(prev => ({
-      ...prev,
-      [studentId]: {
-        ...prev[studentId],
-        [field]: value
-      }
-    }));
-  };
-
   const handleSave = async () => {
-    const payload = {
-      examId: selectedExam,
-      subjectId: selectedSubject,
-      maxMarks: Number(maxMarks),
-      marks: Object.keys(marks).map(studentId => ({
-        studentId,
-        marksObtained: Number(marks[studentId].obtained),
-        remarks: marks[studentId].remarks
-      }))
-    };
-
-    const res = await fetch('/api/v1/marks/bulk', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('wisdomly_token')}` 
-      },
-      body: JSON.stringify(payload)
-    });
-
-    const data = await res.json();
-    if (data.success) {
-      alert('Marks saved successfully!');
-    } else {
-      alert('Failed to save marks');
+    setSaving(true);
+    setStatus('');
+    try {
+      await api.post('/marks/bulk', {
+        examId: selectedExam,
+        subjectId: selectedSubject,
+        maxMarks: Number(maxMarks),
+        marks: Object.entries(marks).map(([studentId, m]) => ({
+          studentId,
+          marksObtained: Number(m.obtained),
+          remarks: m.remarks || undefined,
+        })),
+      });
+      setStatus('Marks saved successfully');
+      setTimeout(() => setStatus(''), 3000);
+    } catch {
+      setStatus('Failed to save marks');
     }
+    setSaving(false);
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Enter Marks</h1>
-          <p className="mt-2 text-gray-600">Record assessment results for your students.</p>
-        </div>
-        <button 
-          onClick={handleSave}
-          disabled={!selectedClass || !selectedSubject || !selectedExam || students.length === 0}
-          className="px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 shadow-sm transition-colors disabled:opacity-50"
-        >
-          Save Marks
-        </button>
-      </div>
+    <RoleGuard allowedRoles={['TEACHER']}>
+      <div className="min-h-screen bg-slate-950 text-white">
+        <header className="bg-slate-900 border-b border-slate-800 px-8 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <FileSpreadsheet size={20} className="text-emerald-400" />
+            <h1 className="text-lg font-bold text-white">Marks Entry</h1>
+          </div>
+          <button onClick={handleSave} disabled={!selectedClass || !selectedSubject || !selectedExam || students.length === 0 || saving}
+            className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-lg transition disabled:opacity-50 flex items-center gap-1.5">
+            {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+            Save Marks
+          </button>
+        </header>
 
-      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mb-8 flex flex-wrap gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Class</label>
-          <select 
-            value={selectedClass} 
-            onChange={(e) => setSelectedClass(e.target.value)}
-            className="w-48 border border-gray-300 rounded-lg p-2"
-          >
-            <option value="">Select a class</option>
-            {classes.map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
-          <select 
-            value={selectedSubject} 
-            onChange={(e) => setSelectedSubject(e.target.value)}
-            disabled={!selectedClass}
-            className="w-48 border border-gray-300 rounded-lg p-2 disabled:bg-gray-100"
-          >
-            <option value="">Select a subject</option>
-            {subjects.map(s => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Exam</label>
-          <select 
-            value={selectedExam} 
-            onChange={(e) => {
-              setSelectedExam(e.target.value);
-              const exam = exams.find(ex => ex.id === e.target.value);
-              if (exam) setMaxMarks(exam.maxMarks);
-            }}
-            className="w-48 border border-gray-300 rounded-lg p-2"
-          >
-            <option value="">Select an exam</option>
-            {exams.map(e => (
-              <option key={e.id} value={e.id}>{e.name}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Max Marks</label>
-          <input 
-            type="number"
-            value={maxMarks}
-            onChange={(e) => setMaxMarks(Number(e.target.value))}
-            className="w-32 border border-gray-300 rounded-lg p-2"
-          />
-        </div>
-      </div>
+        <main className="p-8 max-w-6xl mx-auto space-y-6">
+          {status && (
+            <div className={`text-xs px-4 py-2 rounded-lg ${status.includes('success') ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
+              {status}
+            </div>
+          )}
 
-      {loading ? (
-        <div className="flex justify-center items-center h-32">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      ) : selectedClass && selectedSubject && selectedExam && students.length > 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Roll No</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">Marks Obtained</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Remarks (Optional)</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {students.map(student => (
-                <tr key={student.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{student.rollNumber}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{student.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <input 
-                      type="number" 
-                      min="0"
-                      max={maxMarks}
-                      value={marks[student.id]?.obtained || 0}
-                      onChange={(e) => handleMarkChange(student.id, 'obtained', e.target.value)}
-                      className="w-24 border border-gray-300 rounded-md p-1 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <input 
-                      type="text" 
-                      placeholder="Excellent work..."
-                      value={marks[student.id]?.remarks || ''}
-                      onChange={(e) => handleMarkChange(student.id, 'remarks', e.target.value)}
-                      className="w-full border border-gray-300 rounded-md p-1 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (selectedClass || selectedSubject || selectedExam) ? (
-        <div className="p-12 text-center text-gray-500 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-          Complete your selection to view students.
-        </div>
-      ) : null}
-    </div>
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-wrap gap-4">
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Class</label>
+              <select value={selectedClass} onChange={e => { setSelectedClass(e.target.value); setSelectedSubject(''); setSelectedExam(''); }}
+                className="w-48 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none">
+                <option value="">Select class</option>
+                {classes.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Subject</label>
+              <select value={selectedSubject} onChange={e => { setSelectedSubject(e.target.value); setSelectedExam(''); }}
+                disabled={!selectedClass}
+                className="w-48 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none disabled:opacity-50">
+                <option value="">Select subject</option>
+                {subjects.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Exam</label>
+              <select value={selectedExam} onChange={e => {
+                setSelectedExam(e.target.value);
+                const exam = exams.find((ex: any) => ex.id === e.target.value);
+                if (exam) setMaxMarks(exam.maxMarks);
+              }} disabled={!selectedSubject}
+                className="w-48 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none disabled:opacity-50">
+                <option value="">Select exam</option>
+                {exams.map((e: any) => <option key={e.id} value={e.id}>{e.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Max Marks</label>
+              <input type="number" value={maxMarks} onChange={e => setMaxMarks(Number(e.target.value))}
+                className="w-32 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none" />
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="text-center py-16"><Loader2 size={24} className="animate-spin mx-auto text-slate-500" /></div>
+          ) : selectedClass && selectedSubject && selectedExam && students.length > 0 ? (
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-800 bg-slate-950/50">
+                    <th className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 w-20">Roll</th>
+                    <th className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500">Student</th>
+                    <th className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 w-40">Marks</th>
+                    <th className="px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500">Remarks</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {students.map(student => (
+                    <tr key={student.id} className="hover:bg-slate-800/30">
+                      <td className="px-5 py-3.5 font-mono text-xs text-slate-400">{student.rollNumber}</td>
+                      <td className="px-5 py-3.5 font-medium text-white">{student.name}</td>
+                      <td className="px-5 py-3.5">
+                        <input type="number" min={0} max={maxMarks}
+                          value={marks[student.id]?.obtained || 0}
+                          onChange={e => setMarks(prev => ({ ...prev, [student.id]: { ...prev[student.id], obtained: Number(e.target.value) } }))}
+                          className="w-24 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-2 text-sm text-white outline-none" />
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <input type="text" value={marks[student.id]?.remarks || ''}
+                          onChange={e => setMarks(prev => ({ ...prev, [student.id]: { ...prev[student.id], remarks: e.target.value } }))}
+                          placeholder="Optional"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-2 text-sm text-white outline-none placeholder:text-slate-600" />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : selectedClass ? (
+            <div className="text-center py-16 text-slate-600 text-sm border-2 border-dashed border-slate-800 rounded-2xl">
+              Complete your selection to view students.
+            </div>
+          ) : null}
+        </main>
+      </div>
+    </RoleGuard>
   );
 }

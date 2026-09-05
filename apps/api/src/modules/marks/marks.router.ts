@@ -3,7 +3,9 @@ import {
   submitMarks,
   generateReportCards,
   getStudentResults,
-  getStudentMarksForExam
+  getStudentMarksForExam,
+  getMyResults,
+  getMyMarksForExam,
 } from './marks.controller';
 import { authMiddleware } from '../../middleware/auth';
 import { tenantMiddleware } from '../../middleware/tenant';
@@ -14,6 +16,10 @@ const router = Router();
 
 router.use(authMiddleware);
 router.use(tenantMiddleware);
+
+// Student self-service
+router.get('/my-results', rbac(['STUDENT']), asyncHandler(getMyResults));
+router.get('/my-marks/:examId', rbac(['STUDENT']), asyncHandler(getMyMarksForExam));
 
 // Admin / Teacher endpoints
 router.post('/bulk', rbac(['ADMIN', 'TEACHER']), asyncHandler(submitMarks));

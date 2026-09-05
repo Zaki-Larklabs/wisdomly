@@ -85,6 +85,13 @@ enum AudienceType {
   ROLE
 }
 
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
 // ─────────────────────────────────────────────
 // CORE MODELS
 // ─────────────────────────────────────────────
@@ -124,9 +131,15 @@ model School {
   fees                Fee[]
   notifications       Notification[]
   announcements       Announcement[]
+  notices             Notice[]
   messages            Message[]
   auditLogs           AuditLog[]
   subscription        SchoolSubscription?
+  feeTemplates        FeeTemplate[]
+  leaves              Leave[]
+  books               Book[]
+  bookBorrows         BookBorrow[]
+  staff               Staff[]
 
   @@map("schools")
 }
@@ -147,6 +160,7 @@ model User {
   student       Student?
   teacher       Teacher?
   parent        Parent?
+  staff         Staff?
   auditLogs     AuditLog[]
   sentMessages  Message[] @relation("SentMessages")
   notifications Notification[]
@@ -216,6 +230,8 @@ model Teacher {
   documents   Document[]
   timetable   Timetable[]
   classes     Class[]      @relation("ClassTeacher")
+  leaveRequests  Leave[]
+  reviewedLeaves Leave[] @relation("LeaveReviewer")
 
   @@unique([schoolId, employeeId])
   @@index([schoolId])
@@ -628,7 +644,140 @@ model Notice {
   title       String
   content     String
   targetRole  String   // 'ALL', 'STUDENT', 'TEACHER', 'PARENT'
-  authorId    String   // The ID of the Admin who posted it
+  authorId    String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@map("notices")
+}
+
+// ─────────────────────────────────────────────
+// LIBRARY MANAGEMENT
+// ─────────────────────────────────────────────
+
+enum BookStatus {
+  AVAILABLE
+  BORROWED
+  DAMAGED
+  LOST
+}
+
+model Book {
+  id              String     @id @default(cuid())
+  schoolId        String
+  isbn            String?
+  title           String
+  author          String
+  publisher       String?
+  edition         String?
+  category        String?    // e.g. "Textbook", "Reference", "Fiction"
+  description     String?
+  quantity        Int        @default(1)
+  availableCount  Int        @default(1)
+  shelfLocation   String?
+  status          BookStatus @default(AVAILABLE)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  school      School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  borrows     BookBorrow[]
+
+  @@unique([schoolId, isbn])
+  @@index([schoolId])
+  @@index([schoolId, category])
+  @@map("books")
+}
+
+model BookBorrow {
+  id              String   @id @default(cuid())
+  schoolId        String
+  bookId          String
+  borrowerId      String
+  borrowerRole    String   // 'STUDENT' or 'TEACHER'
+  borrowDate      DateTime @default(now())
+  dueDate         DateTime
+  returnedDate    DateTime?
+  status          String   @default("BORROWED") // BORROWED, RETURNED, OVERDUE
+  remarks         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  book   Book   @relation(fields: [bookId], references: [id])
+
+  @@unique([schoolId, bookId, borrowerId, status], name: "active_borrow")
+  @@index([schoolId])
+  @@index([schoolId, bookId])
+  @@index([schoolId, borrowerId])
+  @@index([schoolId, status])
+  @@map("book_borrows")
+}
+
+model Staff {
+  id            String    @id @default(cuid())
+  schoolId      String
+  userId        String    @unique
+  employeeId    String
+  name          String
+  designation   String    // e.g. "Accountant", "Librarian", "Clerk", "Janitor", "Security"
+  department    String?
+  phone         String?
+  email         String?
+  salary        Float?
+  address       String?
+  photoUrl      String?
+  isActive      Boolean   @default(true)
+  joinedAt      DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, employeeId])
+  @@index([schoolId])
+  @@map("staff")
+}
+
+model FeeTemplate {
+  id          String   @id @default(cuid())
+  schoolId    String
+  name        String
+  description String?
+  items       Json     // Array of { feeType, amount, dueDate, discount? }
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  school      School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@map("fee_templates")
+}
+
+model Leave {
+  id          String       @id @default(cuid())
+  schoolId    String
+  teacherId   String
+  leaveType   String       // SICK, PERSONAL, EMERGENCY, ANNUAL, OTHER
+  startDate   DateTime
+  endDate     DateTime
+  reason      String
+  status      LeaveStatus  @default(PENDING)
+  reviewedBy  String?
+  reviewNote  String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  school      School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  teacher     Teacher      @relation(fields: [teacherId], references: [id])
+  reviewer    Teacher?     @relation("LeaveReviewer", fields: [reviewedBy], references: [id])
+
+  @@index([schoolId])
+  @@index([schoolId, teacherId])
+  @@index([schoolId, status])
+  @@map("leaves")
 }

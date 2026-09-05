@@ -42,6 +42,20 @@ export const getAttendanceByClass = async (req: Request, res: Response) => {
   });
 };
 
+export const getMyAttendance = async (req: Request, res: Response) => {
+  const schoolId = req.schoolId!;
+  const userId = req.user!.sub;
+
+  const student = await prisma.student.findFirst({ where: { schoolId, userId } });
+  if (!student) return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Student not found' } });
+
+  const { month, year } = req.query;
+  if (!month || !year) return res.status(400).json({ success: false, error: { message: 'month and year are required' } });
+
+  const attendance = await attendanceService.getAttendanceByStudent(schoolId, student.id, parseInt(month as string), parseInt(year as string));
+  res.status(200).json({ success: true, data: attendance });
+};
+
 export const getStudentAttendance = async (req: Request, res: Response) => {
   const schoolId = req.schoolId!;
   const userId = req.user?.sub!;

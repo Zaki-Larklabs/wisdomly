@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { api } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { RoleGuard } from '@/components/ui/layouts/RoleGuard';
+import NotificationBell from '@/components/notifications/NotificationBell';
 
 interface Assignment {
   id: string;
@@ -48,12 +49,15 @@ export default function TeacherDashboardOverview() {
               <p className="text-[10px] text-emerald-400 font-mono tracking-wider uppercase font-bold">Faculty Portal Active</p>
             </div>
           </div>
-          <button 
-            onClick={logout}
-            className="bg-slate-950 border border-slate-800 hover:border-rose-500/30 text-slate-400 hover:text-rose-400 text-xs px-4 py-2 rounded-lg transition"
-          >
-            Sign Out
-          </button>
+          <div className="flex items-center gap-3">
+            <NotificationBell />
+            <button 
+              onClick={logout}
+              className="bg-slate-950 border border-slate-800 hover:border-rose-500/30 text-slate-400 hover:text-rose-400 text-xs px-4 py-2 rounded-lg transition"
+            >
+              Sign Out
+            </button>
+          </div>
         </header>
 
         {/* Central Dashboard Workspace Window Grid View */}
@@ -117,6 +121,14 @@ export default function TeacherDashboardOverview() {
               <Link href="/dashboard/teacher/marks" className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg flex flex-col items-center justify-center hover:border-emerald-500/40 transition group cursor-pointer">
                 <span className="text-3xl mb-2 group-hover:scale-110 transition">📝</span>
                 <h4 className="text-sm font-bold text-white group-hover:text-emerald-400">Enter Marks</h4>
+              </Link>
+              <Link href="/dashboard/teacher/homework" className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg flex flex-col items-center justify-center hover:border-emerald-500/40 transition group cursor-pointer">
+                <span className="text-3xl mb-2 group-hover:scale-110 transition">📋</span>
+                <h4 className="text-sm font-bold text-white group-hover:text-emerald-400">Homework</h4>
+              </Link>
+              <Link href="/dashboard/teacher/leaves" className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg flex flex-col items-center justify-center hover:border-emerald-500/40 transition group cursor-pointer">
+                <span className="text-3xl mb-2 group-hover:scale-110 transition">🏖️</span>
+                <h4 className="text-sm font-bold text-white group-hover:text-emerald-400">Leave Request</h4>
               </Link>
             </div>
           </div>
