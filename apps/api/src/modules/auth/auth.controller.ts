@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import * as authService from './auth.service';
-import { loginSchema } from './auth.schema';
+import { prisma } from '../../config/database';
+import { loginSchema, forgotPasswordSchema, resetPasswordSchema, changePasswordSchema, updateProfileSchema, registerStudentSchema, registerParentSchema } from './auth.schema';
 
 export const login = async (req: Request, res: Response) => {
   // 1. Validate incoming body with Zod
@@ -46,4 +47,61 @@ export const logout = async (req: Request, res: Response) => {
   }
   res.clearCookie('refreshToken');
   res.status(200).json({ success: true, data: { message: 'Logged out successfully' } });
+};
+
+export const forgotPassword = async (req: Request, res: Response) => {
+  const input = forgotPasswordSchema.parse(req.body);
+  const result = await authService.forgotPassword(input);
+  res.status(200).json({ success: true, data: result });
+};
+
+export const resetPassword = async (req: Request, res: Response) => {
+  const input = resetPasswordSchema.parse(req.body);
+  const result = await authService.resetPassword(input);
+  res.status(200).json({ success: true, data: result });
+};
+
+export const changePassword = async (req: Request, res: Response) => {
+  const input = changePasswordSchema.parse(req.body);
+  const result = await authService.changePassword(req.user!.sub, input);
+  res.status(200).json({ success: true, data: result });
+};
+
+export const getProfile = async (req: Request, res: Response) => {
+  const result = await authService.getProfile(req.user!.sub);
+  res.status(200).json({ success: true, data: result });
+};
+
+export const updateProfile = async (req: Request, res: Response) => {
+  const input = updateProfileSchema.parse(req.body);
+  const result = await authService.updateProfile(req.user!.sub, input);
+  res.status(200).json({ success: true, data: result });
+};
+
+// ─── Registration ───────────────────────────────────────────
+
+export const registerStudent = async (req: Request, res: Response) => {
+  const input = registerStudentSchema.parse(req.body);
+  const result = await authService.registerStudent(input);
+  res.status(201).json({ success: true, data: { user: result, message: 'Registration submitted for approval' } });
+};
+
+export const registerParent = async (req: Request, res: Response) => {
+  const input = registerParentSchema.parse(req.body);
+  const result = await authService.registerParent(input);
+  res.status(201).json({ success: true, data: { user: result, message: 'Registration submitted for approval' } });
+};
+
+export const getSchoolBySlug = async (req: Request, res: Response) => {
+  const { slug } = req.params;
+  const school = await prisma.school.findUnique({
+    where: { slug },
+    include: {
+      classes: { include: { sections: true } },
+    }
+  });
+  if (!school || !school.isActive) {
+    return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'School not found' } });
+  }
+  res.status(200).json({ success: true, data: school });
 };

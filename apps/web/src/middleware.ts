@@ -24,6 +24,9 @@ export function middleware(request: NextRequest) {
     if (pathname.startsWith('/dashboard/student') && role !== 'STUDENT') {
       return NextResponse.redirect(new URL('/unauthorized', request.url));
     }
+    if (pathname.startsWith('/dashboard/parent') && role !== 'PARENT') {
+      return NextResponse.redirect(new URL('/unauthorized', request.url));
+    }
   }
 
   // 2. Redirect logged-in users away from auth pages
@@ -36,6 +39,9 @@ export function middleware(request: NextRequest) {
     }
     if (role === 'STUDENT') {
       return NextResponse.redirect(new URL('/dashboard/student', request.url));
+    }
+    if (role === 'PARENT') {
+      return NextResponse.redirect(new URL('/dashboard/parent', request.url));
     }
   }
 

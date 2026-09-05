@@ -22,6 +22,14 @@ export const createNewSubject = async (schoolId: string, data: any) => {
   });
 };
 
+export const getSubjectsByClass = async (schoolId: string, classId: string) => {
+  return await prisma.subject.findMany({
+    where: { schoolId, classId },
+    include: { teacher: { select: { name: true } } },
+    orderBy: { name: 'asc' },
+  });
+};
+
 export const getSubjectsWithAssignments = async (schoolId: string) => {
   return await prisma.subject.findMany({
     where: { schoolId },

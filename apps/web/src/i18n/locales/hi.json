@@ -1,0 +1,69 @@
+{
+  "common": {
+    "appName": "विजडमली ओएस",
+    "loading": "लोड हो रहा है...",
+    "save": "सहेजें",
+    "cancel": "रद्द करें",
+    "delete": "हटाएं",
+    "edit": "संपादित करें",
+    "create": "बनाएं",
+    "search": "खोजें",
+    "back": "वापस",
+    "noData": "कोई डेटा उपलब्ध नहीं",
+    "confirmDelete": "क्या आप वाकई इसे हटाना चाहते हैं?",
+    "success": "सफलता",
+    "error": "त्रुटि"
+  },
+  "nav": {
+    "dashboard": "डैशबोर्ड",
+    "students": "छात्र",
+    "teachers": "शिक्षक",
+    "classes": "कक्षाएं",
+    "subjects": "विषय",
+    "timetable": "समय सारणी",
+    "attendance": "उपस्थिति",
+    "exams": "परीक्षाएं",
+    "fees": "शुल्क",
+    "homework": "गृहकार्य",
+    "library": "पुस्तकालय",
+    "settings": "सेटिंग्स",
+    "logout": "लॉग आउट"
+  },
+  "auth": {
+    "login": "लॉग इन",
+    "register": "पंजीकरण",
+    "email": "ईमेल",
+    "password": "पासवर्ड",
+    "forgotPassword": "पासवर्ड भूल गए?",
+    "resetPassword": "पासवर्ड रीसेट करें"
+  },
+  "fee": {
+    "title": "शुल्क प्रबंधन",
+    "totalDue": "कुल बकाया",
+    "paid": "भुगतान किया",
+    "pending": "लंबित",
+    "overdue": "अतिदेय",
+    "payNow": "अब भुगतान करें",
+    "checkout": "चेकआउट"
+  },
+  "student": {
+    "title": "छात्र प्रबंधन",
+    "name": "नाम",
+    "rollNumber": "रोल नंबर",
+    "class": "कक्षा",
+    "section": "अनुभाग"
+  },
+  "teacher": {
+    "title": "शिक्षक प्रबंधन",
+    "name": "नाम",
+    "employeeId": "कर्मचारी आईडी",
+    "department": "विभाग"
+  },
+  "settings": {
+    "title": "सेटिंग्स",
+    "language": "भाषा",
+    "theme": "थीम",
+    "dark": "डार्क",
+    "light": "लाइट"
+  }
+}

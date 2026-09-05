@@ -15,6 +15,10 @@ class InMemoryRedis {
     }
     return 'OK';
   }
+
+  async del(key: string): Promise<number> {
+    return this.store.delete(key) ? 1 : 0;
+  }
 }
 
 export const redis = new InMemoryRedis();

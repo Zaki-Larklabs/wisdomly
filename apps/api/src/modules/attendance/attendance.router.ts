@@ -2,7 +2,8 @@ import { Router } from 'express';
 import {
   markAttendance,
   getAttendanceByClass,
-  getStudentAttendance
+  getStudentAttendance,
+  getMyAttendance
 } from './attendance.controller';
 import { authMiddleware } from '../../middleware/auth';
 import { tenantMiddleware } from '../../middleware/tenant';
@@ -16,6 +17,9 @@ router.use(tenantMiddleware);
 
 // Mark bulk attendance: ADMIN or TEACHER
 router.post('/bulk', rbac(['ADMIN', 'TEACHER']), asyncHandler(markAttendance));
+
+// Student self-service
+router.get('/my-attendance', rbac(['STUDENT']), asyncHandler(getMyAttendance));
 
 // Read endpoints
 router.get('/class/:classId', rbac(['ADMIN', 'TEACHER']), asyncHandler(getAttendanceByClass));
